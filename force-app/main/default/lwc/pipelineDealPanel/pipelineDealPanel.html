@@ -1,0 +1,195 @@
+<template>
+    <aside class="pcc-panel" aria-label="Deal details">
+        <header class="pcc-panel-head">
+            <div class="pcc-head-text">
+                <p class="pcc-eyebrow slds-truncate">{deal.accountName}</p>
+                <h2 class="pcc-title" title={deal.name}>{deal.name}</h2>
+                <p class="slds-text-body_small slds-text-color_weak">{deal.stageName} · {deal.ownerName}</p>
+            </div>
+            <div class="pcc-head-actions">
+                <lightning-button-icon
+                    icon-name="utility:new_window"
+                    variant="border-filled"
+                    alternative-text="Open full record"
+                    title="Open full record"
+                    onclick={openRecord}
+                ></lightning-button-icon>
+                <lightning-button-icon
+                    icon-name="utility:close"
+                    variant="border-filled"
+                    alternative-text="Close panel"
+                    title="Close (Esc)"
+                    onclick={handleClose}
+                ></lightning-button-icon>
+            </div>
+        </header>
+
+        <div class="pcc-panel-body">
+            <section class="pcc-block">
+                <c-pipeline-health-badge
+                    variant="full"
+                    score={deal.healthScore}
+                    level={deal.healthLevel}
+                    flags={deal.riskFlags}
+                ></c-pipeline-health-badge>
+            </section>
+
+            <section class="pcc-facts">
+                <template for:each={facts} for:item="fact">
+                    <div key={fact.key} class="pcc-fact">
+                        <span class="pcc-fact-label">{fact.label}</span>
+                        <span class="pcc-fact-value">{fact.value}</span>
+                        <template lwc:if={fact.sub}>
+                            <span class={fact.className}>{fact.sub}</span>
+                        </template>
+                    </div>
+                </template>
+            </section>
+
+            <lightning-tabset variant="scoped" active-tab-value={activeTab}>
+                <lightning-tab label="Update deal" value="update" onactive={handleTab}>
+                    <lightning-record-edit-form
+                        record-id={recordId}
+                        object-api-name="Opportunity"
+                        density="comfy"
+                        onsuccess={handleSaved}
+                        onerror={handleFormError}
+                    >
+                        <lightning-messages></lightning-messages>
+                        <div class="pcc-form-grid">
+                            <lightning-input-field field-name="StageName"></lightning-input-field>
+                            <lightning-input-field field-name="CloseDate"></lightning-input-field>
+                            <lightning-input-field field-name="Amount"></lightning-input-field>
+                            <lightning-input-field field-name="Probability"></lightning-input-field>
+                            <lightning-input-field field-name="ForecastCategoryName"></lightning-input-field>
+                            <lightning-input-field field-name="OwnerId"></lightning-input-field>
+                            <lightning-input-field class="pcc-span-2" field-name="NextStep"></lightning-input-field>
+                            <lightning-input-field class="pcc-span-2" field-name="Description"></lightning-input-field>
+                        </div>
+                        <div class="pcc-form-actions">
+                            <lightning-button type="submit" variant="brand" label="Save changes"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
+                </lightning-tab>
+
+                <lightning-tab label="Coach rep" value="coach" onactive={handleTab}>
+                    <div class="pcc-templates">
+                        <template for:each={noteTemplates} for:item="tpl">
+                            <button
+                                key={tpl.label}
+                                class="slds-button slds-button_neutral pcc-template-btn"
+                                data-text={tpl.value}
+                                onclick={handleTemplate}
+                            >
+                                {tpl.label}
+                            </button>
+                        </template>
+                    </div>
+                    <lightning-textarea
+                        label="Coaching note"
+                        value={note}
+                        max-length="5000"
+                        placeholder="What should the rep do next?"
+                        field-level-help={mentionHint}
+                        onchange={handleNoteChange}
+                    ></lightning-textarea>
+                    <div class="pcc-form-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Post and notify"
+                            icon-name="utility:chat"
+                            disabled={postDisabled}
+                            onclick={handlePost}
+                        ></lightning-button>
+                    </div>
+
+                    <h3 class="pcc-section-title">Recent posts</h3>
+                    <template lwc:if={loadingInsights}>
+                        <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                    </template>
+                    <template lwc:if={hasPosts}>
+                        <ul class="pcc-posts">
+                            <template for:each={posts} for:item="post">
+                                <li key={post.id} class="pcc-post">
+                                    <div class="pcc-post-meta">
+                                        <strong>{post.authorName}</strong>
+                                        <span class="slds-text-color_weak">{post.when}</span>
+                                    </div>
+                                    <p class="pcc-post-body">{post.body}</p>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-color_weak">No posts on this deal yet.</p>
+                    </template>
+                </lightning-tab>
+
+                <lightning-tab label="Follow-up task" value="task" onactive={handleTab}>
+                    <lightning-input
+                        label="Subject"
+                        data-field="taskSubject"
+                        value={taskSubject}
+                        placeholder="e.g. Send revised proposal"
+                        required
+                        field-level-help={taskHint}
+                        onchange={handleTaskField}
+                    ></lightning-input>
+                    <div class="pcc-form-grid">
+                        <lightning-input
+                            type="date"
+                            label="Due date"
+                            data-field="taskDue"
+                            value={taskDue}
+                            onchange={handleTaskField}
+                        ></lightning-input>
+                        <lightning-combobox
+                            label="Priority"
+                            data-field="taskPriority"
+                            value={taskPriority}
+                            options={priorityOptions}
+                            onchange={handleTaskField}
+                        ></lightning-combobox>
+                    </div>
+                    <lightning-textarea
+                        label="Comments"
+                        data-field="taskComments"
+                        value={taskComments}
+                        onchange={handleTaskField}
+                    ></lightning-textarea>
+                    <div class="pcc-form-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Assign task"
+                            icon-name="utility:task"
+                            disabled={taskDisabled}
+                            onclick={handleCreateTask}
+                        ></lightning-button>
+                    </div>
+
+                    <h3 class="pcc-section-title">Tasks on this deal</h3>
+                    <template lwc:if={hasTasks}>
+                        <ul>
+                            <template for:each={tasks} for:item="task">
+                                <li key={task.id} class={task.className}>
+                                    <lightning-icon
+                                        icon-name={task.icon}
+                                        variant={task.iconVariant}
+                                        size="xx-small"
+                                    ></lightning-icon>
+                                    <div class="pcc-task-text">
+                                        <div class="slds-truncate">{task.subject}</div>
+                                        <div class="slds-text-body_small slds-text-color_weak">{task.meta}</div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-color_weak">No tasks on this deal.</p>
+                    </template>
+                </lightning-tab>
+            </lightning-tabset>
+        </div>
+    </aside>
+</template>

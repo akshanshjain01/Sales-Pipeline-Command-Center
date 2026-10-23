@@ -1,0 +1,38 @@
+<template>
+    <template lwc:if={isFull}>
+        <div class="pcc-full">
+            <div class="pcc-full-head">
+                <span class={pillClass}>{pillText}</span>
+                <span class="slds-text-heading_small">{levelLabel}</span>
+            </div>
+            <template lwc:if={hasReasons}>
+                <ul class="pcc-reasons">
+                    <template for:each={reasons} for:item="reason">
+                        <li key={reason.key} class="pcc-reason">
+                            <lightning-icon
+                                icon-name={reason.icon}
+                                variant={reason.iconVariant}
+                                size="xx-small"
+                                alternative-text={reason.severity}
+                            ></lightning-icon>
+                            <span class="pcc-reason-label">{reason.label}</span>
+                            <span class="slds-text-color_weak">{reason.penaltyText}</span>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:elseif={showOnTrack}>
+                <p class="slds-text-color_weak slds-var-m-top_x-small">No risk signals. Keep it moving.</p>
+            </template>
+        </div>
+    </template>
+    <template lwc:elseif={isPill}>
+        <span class={pillClass} title={tooltip}>{pillText}</span>
+    </template>
+    <template lwc:else>
+        <span class="pcc-compact" title={tooltip}>
+            <span class={pillClass}>{pillText}</span>
+            <span class="pcc-compact-reason slds-truncate">{topReason}</span>
+        </span>
+    </template>
+</template>

@@ -1,0 +1,20 @@
+{
+  "packageDirectories": [
+    {
+      "versionName": "1.0",
+      "versionNumber": "1.0.0.NEXT",
+      "path": "force-app",
+      "default": true,
+      "package": "Pipeline Command Center",
+      "versionDescription": "First release: KPIs, health scores, list and Kanban views, inline edits, coaching notes, follow-up tasks, live team activity."
+    }
+  ],
+  "name": "SalesPipelinePOC",
+  "namespace": "",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "68.0",
+  "packageAliases": {
+    "Pipeline Command Center": "0Hog800000057FNCAY",
+    "Pipeline Command Center@1.0.0-1": "04tg8000000VzdVAAS"
+  }
+}

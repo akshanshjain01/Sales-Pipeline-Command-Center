@@ -1,0 +1,48 @@
+<template>
+    <div class="pcc-tiles">
+        <template for:each={tiles} for:item="tile">
+            <button
+                key={tile.key}
+                class={tile.className}
+                data-key={tile.key}
+                data-static={tile.static}
+                title={tile.title}
+                aria-pressed={tile.pressed}
+                onclick={handleTile}
+            >
+                <span class="pcc-tile-label">
+                    <lightning-icon icon-name={tile.icon} size="xx-small" class="pcc-tile-icon"></lightning-icon>
+                    {tile.label}
+                </span>
+                <span class="pcc-tile-value">{tile.value}</span>
+                <span class="pcc-tile-detail">{tile.detail}</span>
+            </button>
+        </template>
+    </div>
+
+    <div class="pcc-bystage">
+        <button class="pcc-bystage-toggle slds-button" onclick={toggleFunnel}>
+            <lightning-icon icon-name={funnelIcon} size="xx-small"></lightning-icon>
+            <span>Pipeline by stage</span>
+            <span class="pcc-bystage-hint">click a stage to filter</span>
+        </button>
+        <template lwc:if={showFunnel}>
+            <div class="pcc-steps">
+                <template for:each={funnel} for:item="step">
+                    <button
+                        key={step.value}
+                        class={step.className}
+                        data-value={step.value}
+                        title={step.title}
+                        onclick={handleStage}
+                    >
+                        <span class="pcc-step-name">{step.label}</span>
+                        <span class="pcc-step-amount">{step.amountText}</span>
+                        <span class="pcc-step-count">{step.countText}</span>
+                        <span class="pcc-step-track"><span class="pcc-step-fill" style={step.barStyle}></span></span>
+                    </button>
+                </template>
+            </div>
+        </template>
+    </div>
+</template>

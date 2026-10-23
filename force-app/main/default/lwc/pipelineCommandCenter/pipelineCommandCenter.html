@@ -1,0 +1,285 @@
+<template>
+    <div class="pcc-root">
+        <!-- Header -->
+        <header class="pcc-header">
+            <div class="pcc-title-block">
+                <lightning-icon icon-name="standard:opportunity" size="medium" alternative-text=""></lightning-icon>
+                <div class="pcc-title-text">
+                    <h1 class="pcc-title">{cardTitle}</h1>
+                    <p class="pcc-subtitle">{subtitle}</p>
+                </div>
+                <span class={liveClass} title={liveTitle}><span class="pcc-live-dot"></span>{liveLabel}</span>
+            </div>
+            <div class="pcc-header-actions">
+                <lightning-combobox
+                    class="pcc-scope"
+                    label="Scope"
+                    variant="label-hidden"
+                    value={scope}
+                    options={scopeOptions}
+                    onchange={handleScope}
+                ></lightning-combobox>
+                <lightning-button
+                    label={feedButtonLabel}
+                    icon-name="utility:groups"
+                    variant={feedVariant}
+                    onclick={handleToggleFeed}
+                ></lightning-button>
+                <lightning-button-icon
+                    icon-name="utility:download"
+                    variant="border-filled"
+                    alternative-text="Export filtered deals to CSV"
+                    title="Export filtered deals to CSV"
+                    onclick={handleExport}
+                ></lightning-button-icon>
+                <lightning-button-icon
+                    icon-name="utility:refresh"
+                    variant="border-filled"
+                    alternative-text="Refresh"
+                    title="Refresh"
+                    onclick={handleRefresh}
+                ></lightning-button-icon>
+            </div>
+        </header>
+
+        <template lwc:if={error}>
+            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                <span>Could not load the pipeline: {error}</span>
+                <lightning-button
+                    class="slds-m-left_small"
+                    label="Try again"
+                    variant="inverse"
+                    onclick={handleRefresh}
+                ></lightning-button>
+            </div>
+        </template>
+
+        <template lwc:if={truncated}>
+            <div class="slds-notify slds-notify_alert slds-alert_warning" role="alert">{truncatedMessage}</div>
+        </template>
+
+        <!-- KPIs + stage funnel -->
+        <template lwc:if={kpis}>
+            <c-pipeline-summary
+                kpis={kpis}
+                stage-summary={stageSummary}
+                active-keys={activeTileKeys}
+                active-stage={filters.stage}
+                show-funnel={showFunnel}
+                ontileselect={handleTile}
+                onstageselect={handleStageFilter}
+                ontogglefunnel={handleToggleFunnel}
+            ></c-pipeline-summary>
+        </template>
+
+        <!-- Toolbar -->
+        <div class="pcc-toolbar">
+            <lightning-input
+                class="pcc-search"
+                type="search"
+                label="Search"
+                variant="label-hidden"
+                placeholder="Search deal, account, owner, next step..."
+                value={searchInput}
+                onchange={handleSearch}
+            ></lightning-input>
+            <lightning-combobox
+                class="pcc-filter"
+                label="Owner"
+                variant="label-hidden"
+                data-field="ownerId"
+                value={filters.ownerId}
+                options={ownerOptions}
+                onchange={handleFilter}
+            ></lightning-combobox>
+            <lightning-combobox
+                class="pcc-filter"
+                label="Status"
+                variant="label-hidden"
+                data-field="status"
+                value={filters.status}
+                options={statusOptions}
+                onchange={handleFilter}
+            ></lightning-combobox>
+            <lightning-combobox
+                class="pcc-filter"
+                label="Stage"
+                variant="label-hidden"
+                data-field="stage"
+                value={filters.stage}
+                options={stageFilterOptions}
+                onchange={handleFilter}
+            ></lightning-combobox>
+            <lightning-combobox
+                class="pcc-filter"
+                label="Close date"
+                variant="label-hidden"
+                data-field="period"
+                value={filters.period}
+                options={periodOptions}
+                onchange={handleFilter}
+            ></lightning-combobox>
+            <div class="pcc-chips">
+                <template for:each={chips} for:item="chip">
+                    <lightning-button
+                        key={chip.key}
+                        label={chip.label}
+                        variant={chip.variant}
+                        data-key={chip.key}
+                        aria-pressed={chip.pressed}
+                        onclick={handleChip}
+                    ></lightning-button>
+                </template>
+                <template lwc:if={hasActiveFilters}>
+                    <lightning-button
+                        label="Clear filters"
+                        variant="base"
+                        icon-name="utility:clear"
+                        onclick={handleClearFilters}
+                    ></lightning-button>
+                </template>
+            </div>
+        </div>
+        <div class="pcc-result-row">
+            <p class="pcc-result-label">{resultLabel}</p>
+            <div class="pcc-view-switch">
+                <template lwc:if={isKanbanView}>
+                    <lightning-combobox
+                        class="pcc-kanban-sort"
+                        label="Sort cards"
+                        variant="label-hidden"
+                        value={kanbanSort}
+                        options={kanbanSortOptions}
+                        onchange={handleKanbanSort}
+                    ></lightning-combobox>
+                </template>
+                <lightning-button-group>
+                    <lightning-button-icon
+                        icon-name="utility:table"
+                        variant={listVariant}
+                        data-view="list"
+                        alternative-text="List view"
+                        title="List view"
+                        onclick={handleView}
+                    ></lightning-button-icon>
+                    <lightning-button-icon
+                        icon-name="utility:kanban"
+                        variant={kanbanVariant}
+                        data-view="kanban"
+                        alternative-text="Kanban view"
+                        title="Kanban view"
+                        onclick={handleView}
+                    ></lightning-button-icon>
+                </lightning-button-group>
+            </div>
+        </div>
+
+        <!-- Main area + side panel -->
+        <div class={workspaceClass}>
+            <div class="pcc-main">
+                <template lwc:if={isLoading}>
+                    <div class="pcc-loading">
+                        <lightning-spinner alternative-text="Loading pipeline" size="medium"></lightning-spinner>
+                    </div>
+                </template>
+
+                <template lwc:if={hasData}>
+                    <template lwc:if={hasRows}>
+                        <template lwc:if={isListView}>
+                            <div class="pcc-table-wrap">
+                                <c-pipeline-datatable
+                                    key-field="id"
+                                    data={tableRows}
+                                    columns={columns}
+                                    draft-values={draftValues}
+                                    errors={tableErrors}
+                                    sorted-by={sortedBy}
+                                    sorted-direction={sortedDirection}
+                                    enable-infinite-loading={canLoadMore}
+                                    is-loading={isSaving}
+                                    hide-checkbox-column
+                                    show-row-number-column
+                                    column-widths-mode="fixed"
+                                    onsort={handleSort}
+                                    onsave={handleSave}
+                                    oncancel={handleCancel}
+                                    onloadmore={handleLoadMore}
+                                    onrowaction={handleRowAction}
+                                    ondealselect={handleDealSelect}
+                                ></c-pipeline-datatable>
+                            </div>
+                        </template>
+                        <template lwc:if={isKanbanView}>
+                            <c-pipeline-kanban
+                                deals={rows}
+                                stages={stages}
+                                sort-by={kanbanSort}
+                                onstagechange={handleStageChange}
+                                ondealselect={handleDealSelect}
+                            ></c-pipeline-kanban>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <div class="pcc-empty">
+                            <lightning-icon icon-name="utility:filterList" size="small"></lightning-icon>
+                            <p class="slds-text-heading_small">No deals match these filters</p>
+                            <lightning-button label="Clear filters" onclick={handleClearFilters}></lightning-button>
+                        </div>
+                    </template>
+                </template>
+            </div>
+
+            <template lwc:if={showSide}>
+                <div class="pcc-side">
+                    <template lwc:if={selectedDeal}>
+                        <c-pipeline-deal-panel
+                            deal={selectedDeal}
+                            onclose={handlePanelClose}
+                            ondealsaved={handleDealSaved}
+                        ></c-pipeline-deal-panel>
+                    </template>
+                    <template lwc:elseif={showFeed}>
+                        <aside class="pcc-feed" aria-label="Team activity">
+                            <header class="pcc-feed-head">
+                                <div>
+                                    <h2 class="pcc-feed-title">Team activity</h2>
+                                    <p class="slds-text-body_small slds-text-color_weak">{liveTitle}</p>
+                                </div>
+                                <lightning-button-icon
+                                    icon-name="utility:close"
+                                    variant="bare"
+                                    alternative-text="Close"
+                                    onclick={handleToggleFeed}
+                                ></lightning-button-icon>
+                            </header>
+                            <template lwc:if={hasFeed}>
+                                <ul class="pcc-feed-list">
+                                    <template for:each={feedItems} for:item="item">
+                                        <li key={item.key} class={item.className}>
+                                            <div>
+                                                <strong>{item.who}</strong> {item.action} ·
+                                                <a href="#" data-id={item.recordId} onclick={handleFeedOpen}
+                                                    >{item.dealName}</a
+                                                >
+                                            </div>
+                                            <div class="slds-text-body_small slds-text-color_weak">{item.when}</div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <template lwc:else>
+                                <div class="pcc-feed-empty">
+                                    <p>No changes yet in this session.</p>
+                                    <p class="slds-text-body_small slds-text-color_weak">
+                                        When a teammate updates a deal in your scope, it shows up here and the deal is
+                                        highlighted in the list and board.
+                                    </p>
+                                </div>
+                            </template>
+                        </aside>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

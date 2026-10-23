@@ -1,0 +1,118 @@
+<template>
+    <div class="pcc-board" role="list">
+        <template for:each={columns} for:item="col">
+            <section
+                key={col.key}
+                class={col.className}
+                data-stage={col.key}
+                role="listitem"
+                ondragover={handleDragOver}
+                ondragleave={handleDragLeave}
+                ondrop={handleDrop}
+            >
+                <header class="pcc-column-head">
+                    <div class="pcc-column-title">
+                        <span class="slds-truncate" title={col.label}>{col.label}</span>
+                        <span class="pcc-column-count">{col.count}</span>
+                    </div>
+                    <div class="pcc-column-meta">
+                        <span class="pcc-column-total">{col.totalText}</span>
+                        <template lwc:if={col.atRiskText}>
+                            <span class="pcc-column-risk">{col.atRiskText}</span>
+                        </template>
+                    </div>
+                </header>
+
+                <div class="pcc-column-body">
+                    <template lwc:if={col.isEmptyClosed}>
+                        <div class="pcc-zone">{col.zoneText}</div>
+                    </template>
+                    <template lwc:if={col.isEmpty}>
+                        <div class="pcc-empty">No deals</div>
+                    </template>
+
+                    <template for:each={col.cards} for:item="card">
+                        <article
+                            key={card.id}
+                            class={card.className}
+                            draggable="true"
+                            data-id={card.id}
+                            ondragstart={handleDragStart}
+                            ondragend={handleDragEnd}
+                        >
+                            <div class="pcc-card-top">
+                                <a href="#" class="pcc-card-name" data-id={card.id} title={card.name} onclick={handleOpen}
+                                    >{card.name}</a
+                                >
+                                <template lwc:if={card.hasNext}>
+                                    <lightning-button-icon
+                                        icon-name="utility:forward"
+                                        variant="bare"
+                                        size="small"
+                                        class="pcc-advance"
+                                        data-id={card.id}
+                                        data-stage={card.nextStage}
+                                        title={card.nextTitle}
+                                        alternative-text={card.nextTitle}
+                                        onclick={handleAdvance}
+                                    ></lightning-button-icon>
+                                </template>
+                            </div>
+                            <div class="pcc-card-account slds-truncate" title={card.accountName}>{card.accountName}</div>
+
+                            <div class="pcc-card-row">
+                                <span class="pcc-card-amount">
+                                    <template lwc:if={card.isHighValue}>
+                                        <lightning-icon
+                                            icon-name="utility:favorite"
+                                            size="xx-small"
+                                            class="pcc-star"
+                                            alternative-text="High value"
+                                        ></lightning-icon>
+                                    </template>
+                                    {card.amountText}
+                                    <span class="pcc-card-prob">{card.probabilityText}</span>
+                                </span>
+                                <span class={card.closeClass}>{card.closeText}</span>
+                            </div>
+
+                            <div class="pcc-card-row">
+                                <span class="pcc-card-owner">
+                                    <lightning-avatar
+                                        size="x-small"
+                                        variant="circle"
+                                        src={card.ownerPhotoUrl}
+                                        initials={card.ownerInitials}
+                                        fallback-icon-name="standard:user"
+                                        alternative-text={card.ownerName}
+                                    ></lightning-avatar>
+                                    <span class="slds-truncate">{card.ownerName}</span>
+                                </span>
+                                <c-pipeline-health-badge
+                                    class="pcc-card-health"
+                                    score={card.healthScore}
+                                    level={card.healthLevel}
+                                    flags={card.riskFlags}
+                                    variant="pill"
+                                ></c-pipeline-health-badge>
+                            </div>
+
+                            <template lwc:if={card.riskText}>
+                                <div class="pcc-card-risk slds-truncate" title={card.riskText}>{card.riskText}</div>
+                            </template>
+                            <template lwc:if={card.liveLabel}>
+                                <div class="pcc-card-live">{card.liveLabel}</div>
+                            </template>
+                        </article>
+                    </template>
+
+                    <template lwc:if={col.hasMore}>
+                        <button class="slds-button pcc-more" data-stage={col.key} onclick={handleShowMore}>
+                            Show more ({col.remaining} left)
+                        </button>
+                    </template>
+                </div>
+            </section>
+        </template>
+    </div>
+</template>

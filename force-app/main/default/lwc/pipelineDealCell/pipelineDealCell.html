@@ -1,0 +1,17 @@
+<template>
+    <div class="pcc-cell">
+        <template lwc:if={isHighValue}>
+            <lightning-icon
+                class="pcc-star"
+                icon-name="utility:favorite"
+                size="xx-small"
+                alternative-text="High value"
+                title="High value deal"
+            ></lightning-icon>
+        </template>
+        <a href="#" class="pcc-deal-link slds-truncate" title={name} onclick={handleClick}>{name}</a>
+        <template lwc:if={liveLabel}>
+            <span class="pcc-live-tag" title={liveLabel}>{liveLabel}</span>
+        </template>
+    </div>
+</template>
